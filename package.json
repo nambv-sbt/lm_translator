@@ -1,0 +1,169 @@
+{
+  "name": "lm-translator",
+  "displayName": "LM Translator",
+  "description": "Translate text and comments using LM Studio API",
+  "version": "0.0.1",
+  "publisher": "lm-translator",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "lmTranslator.translate",
+        "title": "LM: Translate Selection"
+      },
+      {
+        "command": "lmTranslator.translateAndReplace",
+        "title": "LM: Translate & Replace"
+      },
+      {
+        "command": "lmTranslator.showPanel",
+        "title": "LM: Open Translation Panel"
+      },
+      {
+        "command": "lmTranslator.showStatus",
+        "title": "LM: Show Status"
+      },
+      {
+        "command": "lmTranslator.toggleDecorations",
+        "title": "LM: Toggle Inline Decorations"
+      },
+      {
+        "command": "lmTranslator.cycleDecorationMode",
+        "title": "LM: Cycle Decoration Mode (Off/Inline/Below)"
+      },
+      {
+        "command": "lmTranslator.clearCache",
+        "title": "LM: Clear Translation Cache"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "lmTranslator.translate",
+          "when": "editorHasSelection",
+          "group": "lmTranslator@1"
+        },
+        {
+          "command": "lmTranslator.translateAndReplace",
+          "when": "editorHasSelection",
+          "group": "lmTranslator@2"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "lmTranslator.translate",
+        "key": "ctrl+shift+t",
+        "when": "editorHasSelection"
+      },
+      {
+        "command": "lmTranslator.toggleDecorations",
+        "key": "ctrl+shift+d"
+      },
+      {
+        "command": "lmTranslator.cycleDecorationMode",
+        "key": "ctrl+shift+b"
+      }
+    ],
+    "configuration": {
+      "title": "LM Translator",
+      "properties": {
+        "lmTranslator.apiUrl": {
+          "type": "string",
+          "default": "http://localhost:1234/v1",
+          "description": "LM Studio API URL"
+        },
+        "lmTranslator.model": {
+          "type": "string",
+          "default": "",
+          "description": "Model name (leave empty for default model)"
+        },
+        "lmTranslator.targetLanguage": {
+          "type": "string",
+          "default": "Vietnamese",
+          "description": "Target language for translation"
+        },
+        "lmTranslator.enableHover": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable hover translation for comments"
+        },
+        "lmTranslator.hoverDelay": {
+          "type": "number",
+          "default": 500,
+          "description": "Delay before showing hover translation (ms)"
+        },
+        "lmTranslator.decorationMode": {
+          "type": "string",
+          "enum": ["off", "inline", "highlighted"],
+          "default": "off",
+          "description": "Inline decoration mode: off (disabled), inline (same line), highlighted (prominent)"
+        },
+        "lmTranslator.maxTokens": {
+          "type": "number",
+          "default": 512,
+          "description": "Maximum tokens for API response (higher = longer translations)"
+        },
+        "lmTranslator.cacheTTL": {
+          "type": "number",
+          "default": 604800000,
+          "description": "Cache time-to-live in milliseconds (default: 7 days)"
+        },
+        "lmTranslator.maxCacheSize": {
+          "type": "number",
+          "default": 10000,
+          "description": "Maximum number of cached translations"
+        },
+        "lmTranslator.promptTemplate": {
+          "type": "string",
+          "default": "{{text}}",
+          "description": "Prompt template (variables: {{text}}, {{targetLanguage}})"
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "lmTranslator-container",
+          "title": "LM Translator",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "lmTranslator-container": [
+        {
+          "type": "webview",
+          "id": "lmTranslator.view",
+          "name": "Translation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "node-fetch": "^2.7.0"
+  }
+}
