@@ -145,12 +145,41 @@ export class InlineDecorationProvider {
       const text = document.getText();
       const allComments: { range: vscode.Range; text: string }[] = [];
 
-      // 1. Single Line Comments (//, #, --)
-      const singleLinePatterns = [
-        /\/\/.*$/gm, // JS, Java, C, etc.
-        /#.*$/gm,    // Python, Shell, Ruby
-        /--.*$/gm    // SQL, Lua, Haskell
+      // Get language ID to determine appropriate comment patterns
+      const languageId = document.languageId;
+
+      // Languages that use // for single-line comments
+      const slashSlashLangs = [
+        'javascript', 'typescript', 'javascriptreact', 'typescriptreact',
+        'java', 'c', 'cpp', 'csharp', 'go', 'rust', 'swift', 'kotlin',
+        'php', 'scss', 'less', 'json', 'jsonc'
       ];
+
+      // Languages that use # for single-line comments (must be at line start)
+      const hashLangs = ['python', 'ruby', 'perl', 'shellscript', 'yaml', 'toml', 'dockerfile'];
+
+      // Languages that use -- for single-line comments
+      const doubleDashLangs = ['sql', 'plsql', 'lua', 'haskell'];
+
+      // PHTML/HTML - use // only (avoid jQuery $ issues with #)
+      const htmlLikeLangs = ['html', 'phtml', 'blade', 'twig', 'ejs', 'handlebars', 'vue'];
+
+      // Build patterns based on language
+      const singleLinePatterns: RegExp[] = [];
+
+      if (slashSlashLangs.includes(languageId) || htmlLikeLangs.includes(languageId)) {
+        singleLinePatterns.push(/\/\/.*$/gm);
+      }
+      if (hashLangs.includes(languageId)) {
+        singleLinePatterns.push(/^\s*#.*$/gm); // # must be at line start
+      }
+      if (doubleDashLangs.includes(languageId)) {
+        singleLinePatterns.push(/--.*$/gm);
+      }
+      // Default fallback: use // only (safest)
+      if (singleLinePatterns.length === 0) {
+        singleLinePatterns.push(/\/\/.*$/gm);
+      }
 
       for (const pattern of singleLinePatterns) {
         let match;
@@ -235,6 +264,20 @@ export class InlineDecorationProvider {
                             continue;
                         }
 
+                        // Skip pure identifiers (snake_case, camelCase, PascalCase, or single word type names)
+                        // These are likely type or variable names, not descriptions
+                        if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(word) && !word.includes(' ')) {
+                            // Check if ALL remaining words are also identifiers - if so, skip
+                            const remainingWords = parts.slice(j);
+                            const allIdentifiers = remainingWords.every(w =>
+                                /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(w) ||
+                                w.startsWith('{') || w.startsWith('[') || w.startsWith('$') || w.startsWith('<')
+                            );
+                            if (allIdentifiers) {
+                                continue;
+                            }
+                        }
+
                         // If it's a simple word, is it the variable name?
                         // Usually JSDoc: @param {type} varName Description
                         // PHPDoc: @param type $varName Description
@@ -312,6 +355,19 @@ export class InlineDecorationProvider {
 
       // 4. Process missing comments - Prioritize visible range
       if (missingComments.length > 0) {
+        // Check if LM Studio is available before attempting translations
+        const isOnline = await this.service.isAvailable();
+
+        if (!isOnline) {
+          // Offline mode - only use cached translations
+          console.log(`LM Translator: Offline mode - showing ${cachedDecorations.length} cached translations, ${missingComments.length} comments pending`);
+          if (cachedDecorations.length > 0) {
+            vscode.window.setStatusBarMessage(`LM Translator: Cache mode - ${cachedDecorations.length} translations loaded`, 3000);
+          }
+          this.decoratedDocuments.add(documentUri);
+          return;
+        }
+
         const visibleRanges = editor.visibleRanges;
 
         // Sort by distance to visible

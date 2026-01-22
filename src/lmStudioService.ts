@@ -90,8 +90,11 @@ export class LMStudioService {
 
   /**
    * Make HTTP request to LM Studio API
+   * @param endpoint API endpoint
+   * @param data Optional request body
+   * @param timeoutMs Timeout in milliseconds (default 30000 for translation, use lower for status checks)
    */
-  private async makeRequest<T>(endpoint: string, data?: object): Promise<T> {
+  private async makeRequest<T>(endpoint: string, data?: object, timeoutMs: number = 30000): Promise<T> {
     const url = new URL(getApiEndpoint(endpoint));
     const isHttps = url.protocol === 'https:';
     const httpModule = isHttps ? https : http;
@@ -105,7 +108,7 @@ export class LMStudioService {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      timeout: 60000 // 60 second timeout
+      timeout: timeoutMs
     };
 
     return new Promise((resolve, reject) => {
@@ -146,24 +149,12 @@ export class LMStudioService {
   }
 
   /**
-   * Get available models from LM Studio
-   */
-  public async getModels(): Promise<string[]> {
-    try {
-      const response = await this.makeRequest<ModelsResponse>('/models');
-      return response.data.map(m => m.id);
-    } catch (error) {
-      console.error('Failed to get models:', error);
-      return [];
-    }
-  }
-
-  /**
    * Check if client can connect using current BaseURL
+   * Uses fast timeout (3 seconds) for quick status detection
    */
   public async isAvailable(): Promise<boolean> {
     try {
-      await this.getModels();
+      await this.makeRequest<ModelsResponse>('/models', undefined, 3000);
       return true;
     } catch (error) {
       return false;
@@ -281,5 +272,12 @@ export class LMStudioService {
       maxSize: config.maxCacheSize,
       ttlMinutes: config.cacheTTL / 60000
     };
+  }
+
+  /**
+   * Get cache size (number of entries)
+   */
+  public getCacheSize(): number {
+    return this.translationCache.size;
   }
 }

@@ -75,6 +75,9 @@ export function activate(context: vscode.ExtensionContext) {
 
     vscode.window.showInformationMessage(`LM Translator: Decoration mode → ${modeLabels[nextMode]}`);
 
+    // Check connection status when changing mode
+    await statusBar.checkConnection();
+
     // Update decorations if enabled
     if (nextMode !== 'off') {
       decorationProvider.updateDecorations();
@@ -112,14 +115,15 @@ export function activate(context: vscode.ExtensionContext) {
   });
   context.subscriptions.push(clearCacheCmd);
 
-  // Check LM Studio availability on activation
-  checkLMStudioConnection(statusBar);
+  // Get status check interval from config (default 30 seconds)
+  const statusCheckInterval = vscode.workspace.getConfiguration('lmTranslator').get<number>('statusCheckInterval') ?? 30000;
+
+  // Start periodic LM Studio status check
+  statusBar.startPeriodicCheck(statusCheckInterval);
 
   // Listen for configuration changes
   vscode.workspace.onDidChangeConfiguration((e) => {
     if (e.affectsConfiguration('lmTranslator')) {
-      // Clear cache when config changes
-      LMStudioService.getInstance().clearCache();
       statusBar.updateStatus();
 
       // Update decorations if decoration mode changed
@@ -150,35 +154,30 @@ export function activate(context: vscode.ExtensionContext) {
       decorationProvider.updateDecorations();
     }
   });
-}
 
-/**
- * Check if LM Studio is available
- */
-async function checkLMStudioConnection(statusBar: StatusBarManager): Promise<void> {
-  const service = LMStudioService.getInstance();
-  const isAvailable = await service.isAvailable();
-
-  statusBar.setConnected(isAvailable);
-
-  if (!isAvailable) {
-    vscode.window.showWarningMessage(
-      'LM Translator: Cannot connect to LM Studio. Please make sure LM Studio is running.',
-      'Open Settings'
-    ).then((selection) => {
-      if (selection === 'Open Settings') {
-        vscode.commands.executeCommand('workbench.action.openSettings', 'lmTranslator');
+  // Listen for document changes (new comments, edits)
+  let documentChangeTimeout: NodeJS.Timeout | undefined;
+  vscode.workspace.onDidChangeTextDocument((e) => {
+    const config = getConfig();
+    if (config.decorationMode !== 'off' && e.document === vscode.window.activeTextEditor?.document) {
+      // Debounce to avoid too frequent updates while typing
+      if (documentChangeTimeout) {
+        clearTimeout(documentChangeTimeout);
       }
-    });
-  } else {
-    console.log('LM Translator: Connected to LM Studio successfully');
-  }
+      documentChangeTimeout = setTimeout(() => {
+        decorationProvider.updateDecorations();
+      }, 1500); // Wait 1.5 seconds after last change
+    }
+  });
 }
 
 /**
  * Extension deactivation
  */
 export function deactivate() {
+  // Stop periodic status check
+  StatusBarManager.getInstance().stopPeriodicCheck();
+
   InlineDecorationProvider.getInstance().dispose();
   console.log('LM Translator extension is now deactivated');
 }

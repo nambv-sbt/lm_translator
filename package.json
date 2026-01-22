@@ -2,7 +2,7 @@
   "name": "lm-translator",
   "displayName": "LM Translator",
   "description": "Translate text and comments using LM Studio API",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "lm-translator",
   "engines": {
     "vscode": "^1.85.0"
@@ -127,6 +127,11 @@
           "type": "string",
           "default": "{{text}}",
           "description": "Prompt template (variables: {{text}}, {{targetLanguage}})"
+        },
+        "lmTranslator.statusCheckInterval": {
+          "type": "number",
+          "default": 30000,
+          "description": "Interval for checking LM Studio status in milliseconds (default: 30 seconds)"
         }
       }
     },

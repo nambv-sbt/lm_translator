@@ -9,6 +9,8 @@ export class StatusBarManager {
   private static instance: StatusBarManager;
   private statusBarItem: vscode.StatusBarItem;
   private isConnected: boolean = false;
+  private statusCheckInterval: NodeJS.Timeout | undefined;
+  private lastCheckTime: Date | undefined;
 
   private constructor() {
     this.statusBarItem = vscode.window.createStatusBarItem(
@@ -35,7 +37,11 @@ export class StatusBarManager {
    */
   public updateStatus(): void {
     const config = getConfig();
-    const connectionIcon = this.isConnected ? '🟢' : '🔴';
+    const service = LMStudioService.getInstance();
+    const cacheSize = service.getCacheSize();
+
+    // Show cache icon when disconnected but cache is available
+    const connectionIcon = this.isConnected ? '🟢' : (cacheSize > 0 ? '🟡' : '🔴');
     const decorationIcon = config.decorationMode !== 'off' ? '✨' : '';
 
     this.statusBarItem.text = `${connectionIcon} LM Translator ${decorationIcon}`;
@@ -47,15 +53,30 @@ export class StatusBarManager {
    */
   private getTooltip(): string {
     const config = getConfig();
-    const status = this.isConnected ? 'Connected' : 'Disconnected';
+    const service = LMStudioService.getInstance();
+    const cacheSize = service.getCacheSize();
+
+    let status = this.isConnected ? 'Connected' : 'Disconnected';
+    if (!this.isConnected && cacheSize > 0) {
+      status = 'Disconnected (Cache Mode)';
+    }
+
     const decoration = config.decorationMode === 'off' ? 'Off'
       : config.decorationMode === 'inline' ? 'Inline' : 'Highlighted';
 
-    return `LM Translator\n` +
+    let tooltip = `LM Translator\n` +
       `Status: ${status}\n` +
+      `Cache: ${cacheSize} entries\n` +
       `Decoration: ${decoration}\n` +
-      `Target: ${config.targetLanguage}\n` +
-      `Click for options`;
+      `Target: ${config.targetLanguage}`;
+
+    if (this.lastCheckTime) {
+      const timeStr = this.lastCheckTime.toLocaleTimeString();
+      tooltip += `\nLast check: ${timeStr}`;
+    }
+
+    tooltip += `\nClick for options`;
+    return tooltip;
   }
 
   /**
@@ -64,6 +85,13 @@ export class StatusBarManager {
   public setConnected(connected: boolean): void {
     this.isConnected = connected;
     this.updateStatus();
+  }
+
+  /**
+   * Get connection status
+   */
+  public getConnected(): boolean {
+    return this.isConnected;
   }
 
   /**
@@ -79,7 +107,36 @@ export class StatusBarManager {
   public async checkConnection(): Promise<void> {
     const service = LMStudioService.getInstance();
     const isAvailable = await service.isAvailable();
+    this.lastCheckTime = new Date();
     this.setConnected(isAvailable);
+  }
+
+  /**
+   * Start periodic status check
+   * @param intervalMs Check interval in milliseconds (default 30000 = 30 seconds)
+   */
+  public startPeriodicCheck(intervalMs: number = 30000): void {
+    // Clear any existing interval
+    this.stopPeriodicCheck();
+
+    // Run initial check
+    this.checkConnection();
+
+    // Set up periodic check
+    this.statusCheckInterval = setInterval(async () => {
+      await this.checkConnection();
+      console.log(`LM Translator: Status check - ${this.isConnected ? 'Connected' : 'Disconnected'}`);
+    }, intervalMs);
+  }
+
+  /**
+   * Stop periodic status check
+   */
+  public stopPeriodicCheck(): void {
+    if (this.statusCheckInterval) {
+      clearInterval(this.statusCheckInterval);
+      this.statusCheckInterval = undefined;
+    }
   }
 }
 
