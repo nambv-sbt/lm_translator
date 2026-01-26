@@ -2,7 +2,7 @@
   "name": "lm-translator",
   "displayName": "LM Translator",
   "description": "Translate text and comments using LM Studio API",
-  "version": "0.0.3",
+  "version": "0.0.2",
   "publisher": "lm-translator",
   "engines": {
     "vscode": "^1.85.0"

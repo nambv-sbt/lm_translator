@@ -47,18 +47,42 @@ echo Press any key when you have updated CHANGELOG.md...
 pause >nul
 
 echo.
-echo [3/5] Committing changes...
+echo [3/6] Building VSIX package...
+call vsce package --allow-missing-repository
+if errorlevel 1 (
+    echo [ERROR] Build failed.
+    exit /b 1
+)
+
+echo.
+echo [4/6] Committing changes...
 git add package.json package-lock.json CHANGELOG.md
 git commit -m "chore: release v%VERSION%"
 
 echo.
-echo [4/5] Creating tag v%VERSION%...
+echo [5/6] Creating tag v%VERSION%...
 git tag v%VERSION%
 
 echo.
-echo [5/5] Pushing to GitHub...
+echo [6/6] Pushing to GitHub...
 git push origin main
 git push origin v%VERSION%
+
+echo.
+echo [7/7] Creating GitHub Release...
+where gh >nul 2>nul
+if %errorlevel% neq 0 (
+    echo [WARN] GitHub CLI 'gh' not found. Skipping release creation.
+    echo Please manually create release v%VERSION% and upload 'lm-translator-%VERSION%.vsix'.
+) else (
+    echo Creating release v%VERSION% and uploading VSIX...
+    gh release create v%VERSION% "lm-translator-%VERSION%.vsix" --title "v%VERSION%" --notes-file CHANGELOG.md
+    if errorlevel 1 (
+        echo [WARN] Failed to create GitHub release. Check your 'gh' auth status.
+    ) else (
+        echo GitHub Release created successfully!
+    )
+)
 
 echo.
 echo ========================================
