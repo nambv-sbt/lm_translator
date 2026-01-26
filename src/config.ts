@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { LMTranslatorConfig } from './types';
+import { LMTranslatorConfig, TranslationProvider } from './types';
 
 /**
  * Default configuration values
@@ -14,7 +14,8 @@ const DEFAULT_CONFIG: LMTranslatorConfig = {
   maxTokens: 512,
   cacheTTL: 604800000, // 7 days in ms
   maxCacheSize: 10000,
-  promptTemplate: '{{text}}' // Simple template by default
+  promptTemplate: '{{text}}', // Simple template by default
+  provider: 'LM Studio'
 };
 
 /**
@@ -33,7 +34,8 @@ export function getConfig(): LMTranslatorConfig {
     maxTokens: config.get<number>('maxTokens') || DEFAULT_CONFIG.maxTokens,
     cacheTTL: config.get<number>('cacheTTL') || DEFAULT_CONFIG.cacheTTL,
     maxCacheSize: config.get<number>('maxCacheSize') || DEFAULT_CONFIG.maxCacheSize,
-    promptTemplate: config.get<string>('promptTemplate') || DEFAULT_CONFIG.promptTemplate
+    promptTemplate: config.get<string>('promptTemplate') || DEFAULT_CONFIG.promptTemplate,
+    provider: config.get<TranslationProvider>('provider') || 'LM Studio'
   };
 }
 

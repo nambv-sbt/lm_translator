@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { LMStudioService } from './lmStudioService';
+import { TranslationServiceManager } from './translationService';
 import { getConfig } from './config';
 
 /**
@@ -13,7 +13,7 @@ type DecorationMode = 'off' | 'inline' | 'highlighted';
  */
 export class InlineDecorationProvider {
   private static instance: InlineDecorationProvider;
-  private service: LMStudioService;
+  private service = TranslationServiceManager.getInstance();
   private currentDocumentUri: string = '';
   private activeRenderId: number = 0; // Token to cancel old tasks
 
@@ -30,8 +30,6 @@ export class InlineDecorationProvider {
   private decorationCache: Map<string, vscode.DecorationOptions[]> = new Map();
 
   private constructor() {
-    this.service = LMStudioService.getInstance();
-
     // Create inline decoration type
     this.inlineDecorationType = vscode.window.createTextEditorDecorationType({
       after: {

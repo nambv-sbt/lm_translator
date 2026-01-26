@@ -16,7 +16,10 @@ export interface LMTranslatorConfig {
   cacheTTL: number;
   maxCacheSize: number;
   promptTemplate: string;
+  provider: TranslationProvider;
 }
+
+export type TranslationProvider = 'LM Studio' | 'Google Translate';
 
 /**
  * OpenAI-compatible chat completion request

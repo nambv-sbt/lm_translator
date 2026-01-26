@@ -10,12 +10,13 @@ import {
   ChatMessage
 } from './types';
 import { getConfig, buildPrompt, getApiEndpoint } from './config';
+import { ITranslationService } from './translationService';
 
 /**
  * LM Studio API Service
  * Handles communication with LM Studio's OpenAI-compatible API
  */
-export class LMStudioService {
+export class LMStudioService implements ITranslationService {
   private static instance: LMStudioService;
   private translationCache: Map<string, TranslationResult> = new Map();
   private context: vscode.ExtensionContext | undefined;

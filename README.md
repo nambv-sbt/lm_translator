@@ -4,6 +4,7 @@ Translate text and code comments using LM Studio's local AI models.
 
 ## ✨ Features
 
+- **🌐 Multi-Provider** - Support for **LM Studio** (Local LLM) and **Google Translate**
 - **🔍 Hover Translation** - Hover over comments to see instant translations
 - **✨ Inline Decorations** - Show translations inline without modifying code
 - **📝 Translate Selection** - Right-click selected text to translate
@@ -13,8 +14,8 @@ Translate text and code comments using LM Studio's local AI models.
 
 ## 🚀 Quick Start
 
-1. Install [LM Studio](https://lmstudio.ai/) and load a model
-2. Enable LM Studio's local server (default: `http://localhost:1234`)
+1. Install [LM Studio](https://lmstudio.ai/) and load a model (optional if using Google Translate)
+2. Select provider in settings: `LM Studio` or `Google Translate`
 3. Start translating!
 
 ## ⌨️ Keyboard Shortcuts
@@ -29,8 +30,10 @@ Translate text and code comments using LM Studio's local AI models.
 
 | Setting           | Default                      | Description                    |
 |-------------------|------------------------------|--------------------------------|
+| `provider`        | `LM Studio`                  | Translation Service            |
 | `apiUrl`          | `http://localhost:1234/v1`   | LM Studio API URL              |
 | `model`           | `""`                         | Model name (empty = default)   |
+| `googleTranslateOption` | `...` | (Optional) Options for Google Translate if needed |
 | `targetLanguage`  | `Vietnamese`                 | Target language                |
 | `enableHover`     | `true`                       | Enable hover translation       |
 | `decorationMode`  | `off`                        | off / inline / highlighted     |

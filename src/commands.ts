@@ -1,12 +1,12 @@
 import * as vscode from 'vscode';
-import { LMStudioService } from './lmStudioService';
+import { TranslationServiceManager } from './translationService';
 import { TranslationPanel } from './translationPanel';
 
 /**
  * Register all extension commands
  */
 export function registerCommands(context: vscode.ExtensionContext): void {
-  const service = LMStudioService.getInstance();
+  const service = TranslationServiceManager.getInstance();
 
   // Command: Translate Selection
   const translateCmd = vscode.commands.registerCommand('lmTranslator.translate', async () => {
@@ -85,7 +85,7 @@ export function registerCommands(context: vscode.ExtensionContext): void {
  * Translate text and show result in panel
  */
 async function translateAndShow(text: string, context: vscode.ExtensionContext): Promise<void> {
-  const service = LMStudioService.getInstance();
+  const service = TranslationServiceManager.getInstance();
 
   // Show the panel first
   const panel = TranslationPanel.createOrShow(context.extensionUri);

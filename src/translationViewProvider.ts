@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { LMStudioService } from './lmStudioService';
+import { TranslationServiceManager } from './translationService';
 import { getConfig } from './config';
 
 /**
@@ -40,6 +40,13 @@ export class TranslationViewProvider implements vscode.WebviewViewProvider {
             this._sendConfig();
             break;
         }
+        case 'updateTargetLanguage': {
+            const config = vscode.workspace.getConfiguration('lmTranslator');
+            await config.update('targetLanguage', data.language, vscode.ConfigurationTarget.Global);
+            // Config listener in extension.ts will trigger status update, but we should also update view
+            this._sendConfig();
+            break;
+        }
       }
     });
 
@@ -60,7 +67,7 @@ export class TranslationViewProvider implements vscode.WebviewViewProvider {
 
   private async _translateText(text: string) {
       if (!this._view) { return; }
-      const service = LMStudioService.getInstance();
+      const service = TranslationServiceManager.getInstance();
 
       this._view.webview.postMessage({ command: 'setLoading', loading: true });
 
@@ -171,12 +178,28 @@ export class TranslationViewProvider implements vscode.WebviewViewProvider {
   <h1>🌐 LM Translator</h1>
   <div class="info">
     Target: <strong id="target-lang">...</strong><br>
-    API: <strong id="api-url">...</strong>
+    Provider: <strong id="api-url">...</strong>
   </div>
 
   <div class="panel">
     <label for="input">Source</label>
     <textarea id="input" placeholder="Enter text..."></textarea>
+  </div>
+
+  <div class="panel">
+      <label for="target-lang-select">Target Language</label>
+      <select id="target-lang-select" style="width: 100%; padding: 6px; border-radius: 4px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border);">
+          <option value="Vietnamese">Vietnamese</option>
+          <option value="English">English</option>
+          <option value="Spanish">Spanish</option>
+          <option value="French">French</option>
+          <option value="German">German</option>
+          <option value="Chinese">Chinese</option>
+          <option value="Japanese">Japanese</option>
+          <option value="Korean">Korean</option>
+          <option value="Russian">Russian</option>
+          <option value="Portuguese">Portuguese</option>
+      </select>
   </div>
 
   <div class="actions">
@@ -204,7 +227,9 @@ export class TranslationViewProvider implements vscode.WebviewViewProvider {
     const copyBtn = document.getElementById('copy-btn');
     const statusEl = document.getElementById('status');
     const targetLangEl = document.getElementById('target-lang');
+    const targetLangSelect = document.getElementById('target-lang-select');
     const apiUrlEl = document.getElementById('api-url');
+    let currentConfig = {};
 
     vscode.postMessage({ command: 'getConfig' });
 
@@ -212,6 +237,11 @@ export class TranslationViewProvider implements vscode.WebviewViewProvider {
       const text = inputEl.value.trim();
       if (!text) return;
       vscode.postMessage({ command: 'translate', text });
+    });
+
+    targetLangSelect.addEventListener('change', () => {
+        const newLang = targetLangSelect.value;
+        vscode.postMessage({ command: 'updateTargetLanguage', language: newLang });
     });
 
     clearBtn.addEventListener('click', () => {
@@ -252,10 +282,23 @@ export class TranslationViewProvider implements vscode.WebviewViewProvider {
           statusEl.textContent = message.loading ? 'Translating...' : '';
           break;
         case 'setConfig':
+          currentConfig = message.config;
           targetLangEl.textContent = message.config.targetLanguage;
+
+          // Update select if value exists, otherwise add it
+          const lang = message.config.targetLanguage;
+          const options = Array.from(targetLangSelect.options).map(o => o.value);
+          if (!options.includes(lang)) {
+               const opt = document.createElement('option');
+               opt.value = lang;
+               opt.textContent = lang;
+               targetLangSelect.appendChild(opt);
+          }
+          targetLangSelect.value = lang;
+
           try {
-              apiUrlEl.textContent = new URL(message.config.apiUrl).host;
-          } catch(e) { apiUrlEl.textContent = 'Invalid URL'; }
+              apiUrlEl.textContent = message.config.provider;
+          } catch(e) { apiUrlEl.textContent = 'Unknown'; }
           break;
       }
     });

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { LMStudioService } from './lmStudioService';
+import { TranslationServiceManager } from './translationService';
 import { getConfig, buildPrompt } from './config';
 
 /**
@@ -7,10 +7,9 @@ import { getConfig, buildPrompt } from './config';
  * Shows translation tooltip when hovering over text
  */
 export class TranslationHoverProvider implements vscode.HoverProvider {
-  private service: LMStudioService;
+  private service = TranslationServiceManager.getInstance();
 
   constructor() {
-    this.service = LMStudioService.getInstance();
   }
 
   /**

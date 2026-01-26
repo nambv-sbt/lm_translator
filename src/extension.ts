@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import { TranslationHoverProvider } from './hoverProvider';
 import { registerCommands } from './commands';
 import { LMStudioService } from './lmStudioService';
+import { GoogleTranslateService } from './googleTranslateService';
+import { TranslationServiceManager } from './translationService';
 import { StatusBarManager, showStatusMenu } from './statusBar';
 import { InlineDecorationProvider } from './inlineDecoration';
 import { getConfig } from './config';
@@ -14,13 +16,21 @@ import { TranslationViewProvider } from './translationViewProvider';
 export function activate(context: vscode.ExtensionContext) {
   console.log('LM Translator extension is now active');
 
-  // Initialize status bar
+  // Initialize Services
+  const manager = TranslationServiceManager.getInstance();
+
+  // 1. LM Studio
+  const lmService = LMStudioService.getInstance();
+  lmService.initialize(context); // Legacy initialization for persistence
+  manager.registerService('LM Studio', lmService);
+
+  // 2. Google Translate
+  const googleService = GoogleTranslateService.getInstance();
+  manager.registerService('Google Translate', googleService);
+
+  // Initialize status bar (must be done after services are registered)
   const statusBar = StatusBarManager.getInstance();
   context.subscriptions.push(statusBar.getStatusBarItem());
-
-  // Initialize LM Studio service with context for persistent cache
-  const service = LMStudioService.getInstance();
-  service.initialize(context);
 
   // Initialize inline decoration provider
   const decorationProvider = InlineDecorationProvider.getInstance();
@@ -89,12 +99,13 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Register show status command
   const showStatusCmd = vscode.commands.registerCommand('lmTranslator.showStatus', async () => {
-    const service = LMStudioService.getInstance();
+    const service = TranslationServiceManager.getInstance().getService();
     const isConnected = await service.isAvailable();
     const config = getConfig();
 
     vscode.window.showInformationMessage(
       `LM Translator Status:\n` +
+      `Provider: ${config.provider}\n` +
       `Connection: ${isConnected ? 'Connected' : 'Disconnected'}\n` +
       `Decoration: ${config.decorationMode}\n` +
       `Target: ${config.targetLanguage}`
@@ -104,7 +115,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Register clear cache command
   const clearCacheCmd = vscode.commands.registerCommand('lmTranslator.clearCache', () => {
-    LMStudioService.getInstance().clearCache();
+    TranslationServiceManager.getInstance().getService().clearCache();
 
     // If decoration mode is enabled, clear decorations
     if (getConfig().decorationMode !== 'off') {

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { getConfig } from './config';
-import { LMStudioService } from './lmStudioService';
+import { TranslationServiceManager } from './translationService';
 
 /**
  * Status Bar Manager for LM Translator
@@ -37,14 +37,17 @@ export class StatusBarManager {
    */
   public updateStatus(): void {
     const config = getConfig();
-    const service = LMStudioService.getInstance();
-    const cacheSize = service.getCacheSize();
+    const serviceManager = TranslationServiceManager.getInstance();
+    const service = serviceManager.getService();
+    // Only verify cache if available in service
+    const cacheSize = 'getCacheSize' in service ? (service as any).getCacheSize() : 0;
 
     // Show cache icon when disconnected but cache is available
     const connectionIcon = this.isConnected ? '🟢' : (cacheSize > 0 ? '🟡' : '🔴');
     const decorationIcon = config.decorationMode !== 'off' ? '✨' : '';
+    const providerIcon = config.provider === 'Google Translate' ? 'G' : 'LM';
 
-    this.statusBarItem.text = `${connectionIcon} LM Translator ${decorationIcon}`;
+    this.statusBarItem.text = `${connectionIcon} [${providerIcon}] Translator ${decorationIcon}`;
     this.statusBarItem.tooltip = this.getTooltip();
   }
 
@@ -53,8 +56,9 @@ export class StatusBarManager {
    */
   private getTooltip(): string {
     const config = getConfig();
-    const service = LMStudioService.getInstance();
-    const cacheSize = service.getCacheSize();
+    const serviceManager = TranslationServiceManager.getInstance();
+    const service = serviceManager.getService();
+    const cacheSize = (service as any).getCacheSize ? (service as any).getCacheSize() : 0;
 
     let status = this.isConnected ? 'Connected' : 'Disconnected';
     if (!this.isConnected && cacheSize > 0) {
@@ -64,7 +68,7 @@ export class StatusBarManager {
     const decoration = config.decorationMode === 'off' ? 'Off'
       : config.decorationMode === 'inline' ? 'Inline' : 'Highlighted';
 
-    let tooltip = `LM Translator\n` +
+    let tooltip = `LM Translator (${config.provider})\n` +
       `Status: ${status}\n` +
       `Cache: ${cacheSize} entries\n` +
       `Decoration: ${decoration}\n` +
@@ -105,7 +109,7 @@ export class StatusBarManager {
    * Check connection and update status
    */
   public async checkConnection(): Promise<void> {
-    const service = LMStudioService.getInstance();
+    const service = TranslationServiceManager.getInstance().getService();
     const isAvailable = await service.isAvailable();
     this.lastCheckTime = new Date();
     this.setConnected(isAvailable);
@@ -187,9 +191,9 @@ export async function showStatusMenu(): Promise<void> {
     await vscode.commands.executeCommand('lmTranslator.cycleDecorationMode');
   } else if (selected.label.includes('Connection')) {
     await statusBar.checkConnection();
-    const isConnected = await LMStudioService.getInstance().isAvailable();
+    const isConnected = await TranslationServiceManager.getInstance().getService().isAvailable();
     vscode.window.showInformationMessage(
-      isConnected ? 'LM Translator: Connected to LM Studio' : 'LM Translator: Cannot connect to LM Studio'
+      isConnected ? `LM Translator: Connected to ${config.provider}` : `LM Translator: Cannot connect to ${config.provider}`
     );
   } else if (selected.label.includes('Clear Translation Cache')) {
     await vscode.commands.executeCommand('lmTranslator.clearCache');

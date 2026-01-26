@@ -2,7 +2,7 @@
   "name": "lm-translator",
   "displayName": "LM Translator",
   "description": "Translate text and comments using LM Studio API",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "lm-translator",
   "engines": {
     "vscode": "^1.85.0"
@@ -87,6 +87,15 @@
           "default": "",
           "description": "Model name (leave empty for default model)"
         },
+        "lmTranslator.provider": {
+          "type": "string",
+          "enum": [
+            "LM Studio",
+            "Google Translate"
+          ],
+          "default": "LM Studio",
+          "description": "Translation provider service"
+        },
         "lmTranslator.targetLanguage": {
           "type": "string",
           "default": "Vietnamese",
@@ -104,7 +113,11 @@
         },
         "lmTranslator.decorationMode": {
           "type": "string",
-          "enum": ["off", "inline", "highlighted"],
+          "enum": [
+            "off",
+            "inline",
+            "highlighted"
+          ],
           "default": "off",
           "description": "Inline decoration mode: off (disabled), inline (same line), highlighted (prominent)"
         },
@@ -169,6 +182,7 @@
     "typescript": "^5.3.0"
   },
   "dependencies": {
+    "google-translate-api-x": "^10.7.2",
     "node-fetch": "^2.7.0"
   }
 }
